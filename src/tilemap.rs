@@ -16,6 +16,7 @@ pub struct Tile {
 pub enum TileType {
     Grass,
     Water,
+    DeepWater,
     Sand,
     Mountain,
 }
@@ -31,6 +32,7 @@ impl TileType {
         match self {
             TileType::Grass => Color::hex("#40ff7c").unwrap(),
             TileType::Water => Color::hex("#2ab8f5").unwrap(),
+            TileType::DeepWater => Color::hex("#1e8bc3").unwrap(),
             TileType::Sand => Color::hex("#ffed69").unwrap(),
             TileType::Mountain => Color::hex("#6fa5bd").unwrap(),
         }
@@ -64,12 +66,14 @@ fn setup_map(mut commands: Commands, seed: Res<Seed>) {
     
     for x in 0..map_size {
         for y in 0..map_size {
-            let value = noise.get([x as f64 / 20.0, y as f64 / 20.0]) as f32;
-            if value < -0.4 {
+            let value = noise.get([x as f64 / 25.0, y as f64 / 25.0]) as f32 * 2.0;
+            if value < -0.8 {
+                map[x][y] = TileType::DeepWater;
+            } else if value < -0.55 {
                 map[x][y] = TileType::Water;
-            } else if value < -0.3 {
+            } else if value < -0.35 {
                 map[x][y] = TileType::Sand;
-            } else if value < 0.5 {
+            } else if value < 0.75 {
                 map[x][y] = TileType::Grass;
             } else {
                 map[x][y] = TileType::Mountain;
@@ -116,7 +120,7 @@ fn setup_map(mut commands: Commands, seed: Res<Seed>) {
 }
 
 pub fn show_tiles_in_frame(
-    mut query: Query<(&mut Visibility, &Transform), With<Tile>>,
+    mut query: Query<(&mut Visibility, &Transform), With<Sprite>>,
     camera_query: Query<(&Transform, &OrthographicProjection), With<GameCamera>>,
     window_query: Query<&Window, With<PrimaryWindow>>
 ) {
