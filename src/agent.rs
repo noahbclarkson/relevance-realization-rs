@@ -115,7 +115,7 @@ fn toggle_camera_lock(
     mouse_button_input: Res<Input<MouseButton>>,
     mut camera_lock_target: ResMut<CameraLockTarget>,
     query: Query<&Transform, With<GameCamera>>,
-    window_query: Query<&Window, With<PrimaryWindow>>
+    window_query: Query<&Window, With<PrimaryWindow>>,
 ) {
     let Ok(primary) = window_query.get_single() else {
         return;
@@ -124,8 +124,8 @@ fn toggle_camera_lock(
         camera_lock_target.locked = !camera_lock_target.locked;
         if camera_lock_target.locked {
             for transform in query.iter() {
-                camera_lock_target.camera_positon = Vec2::new(
-                    transform.translation.x,
+                camera_lock_target.camera_positon =
+                    Vec2::new(transform.translation.x, transform.translation.y);
                     transform.translation.y,
                 );
             }
@@ -143,10 +143,10 @@ fn get_agent_view(mut query: Query<(&Transform, &mut Agent)>, tiles: Res<Tiles>)
             (transform.translation.y / TILE_SIZE as f32) as i32,
         );
 
-        let min_x = (agent_tile_position.x - AGENT_VIEW_DISTANCE).max(0);
-        let max_x = (agent_tile_position.x + AGENT_VIEW_DISTANCE).min(MAP_SIZE as i32 - 1);
-        let min_y = (agent_tile_position.y - AGENT_VIEW_DISTANCE).max(0);
-        let max_y = (agent_tile_position.y + AGENT_VIEW_DISTANCE).min(MAP_SIZE as i32 - 1);
+        let min_x = (agent_tile_position.x - agent.view_distance).max(0);
+        let max_x = (agent_tile_position.x + agent.view_distance).min(MAP_SIZE as i32 - 1);
+        let min_y = (agent_tile_position.y - agent.view_distance).max(0);
+        let max_y = (agent_tile_position.y + agent.view_distance).min(MAP_SIZE as i32 - 1);
 
         for x in min_x..=max_x {
             for y in min_y..=max_y {
@@ -155,7 +155,7 @@ fn get_agent_view(mut query: Query<(&Transform, &mut Agent)>, tiles: Res<Tiles>)
 
                 // Calculate the distance between the transform of the agent and the transform of the tile
                 let tile_distance = distance(
-                    Vec2::new(
+                    Vec2::new(transform.translation.x, transform.translation.y),
                         transform.translation.x,
                         transform.translation.y,
                     ),
@@ -232,9 +232,9 @@ fn find_agents(
 ) {
     camera_lock_target.targets.clear();
     for (transform, _) in query.iter() {
-        camera_lock_target.targets.push(Vec2::new(
-            transform.translation.x,
-            transform.translation.y,
+        camera_lock_target
+            .targets
+            .push(Vec2::new(transform.translation.x, transform.translation.y));
         ));
     }
 }
@@ -249,8 +249,11 @@ fn lock_camera_to_target(
         let mut target_pos = Vec2::ZERO;
 
         for target in camera_lock_target.targets.iter() {
-            let screen_target = (*target - camera_lock_target.camera_positon) + (camera_lock_target.window_size / 2.0);
-            let screen_camera_position = (camera_lock_target.camera_positon - camera_lock_target.camera_positon) + (camera_lock_target.window_size / 2.0);
+            let screen_target = (*target - camera_lock_target.camera_positon)
+                + (camera_lock_target.window_size / 2.0);
+            let screen_camera_position = (camera_lock_target.camera_positon
+                - camera_lock_target.camera_positon)
+                + (camera_lock_target.window_size / 2.0);
 
             let screen_distance = distance(screen_camera_position, screen_target);
 
@@ -261,7 +264,7 @@ fn lock_camera_to_target(
         }
 
         for (mut transform, _) in query.iter_mut() {
-            let camera_pos = Vec2::new(
+            let camera_pos = Vec2::new(transform.translation.x, transform.translation.y);
                 transform.translation.x,
                 transform.translation.y,
             );
