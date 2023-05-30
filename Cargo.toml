@@ -8,6 +8,12 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.10", features = ["dynamic_linking"] }
 bevy_egui = "0.20"
+noise = "0.8"
+strum = "0.24"
+strum_macros = "0.24"
+getset = "0.1"
+rand = "0.8"
+ordered-float = "3.7.0"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
