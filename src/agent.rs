@@ -126,8 +126,6 @@ fn toggle_camera_lock(
             for transform in query.iter() {
                 camera_lock_target.camera_positon =
                     Vec2::new(transform.translation.x, transform.translation.y);
-                    transform.translation.y,
-                );
             }
             camera_lock_target.window_size = Vec2::new(primary.width(), primary.height());
         }
@@ -156,9 +154,6 @@ fn get_agent_view(mut query: Query<(&Transform, &mut Agent)>, tiles: Res<Tiles>)
                 // Calculate the distance between the transform of the agent and the transform of the tile
                 let tile_distance = distance(
                     Vec2::new(transform.translation.x, transform.translation.y),
-                        transform.translation.x,
-                        transform.translation.y,
-                    ),
                     Vec2::new(
                         (tile_position.x * TILE_SIZE) as f32,
                         (tile_position.y * TILE_SIZE) as f32,
@@ -235,7 +230,6 @@ fn find_agents(
         camera_lock_target
             .targets
             .push(Vec2::new(transform.translation.x, transform.translation.y));
-        ));
     }
 }
 
@@ -265,9 +259,6 @@ fn lock_camera_to_target(
 
         for (mut transform, _) in query.iter_mut() {
             let camera_pos = Vec2::new(transform.translation.x, transform.translation.y);
-                transform.translation.x,
-                transform.translation.y,
-            );
             let dist = distance(camera_pos, target_pos);
 
             // If the distance is less than 5 don't move
