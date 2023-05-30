@@ -4,6 +4,8 @@ use bevy_egui::{
     EguiContexts,
 };
 
+use crate::menu::AppState;
+
 // Resource that holds the slider values
 #[derive(Default, Resource)]
 struct SliderValues {
@@ -15,14 +17,14 @@ struct SliderValues {
 // Event that is sent when slider values are changed
 struct SliderChangeEvent;
 
-pub struct UserSettingsPlugin;
+pub struct NewWorldPlugin;
 
-impl Plugin for UserSettingsPlugin {
+impl Plugin for NewWorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SliderValues>()
             .add_event::<SliderChangeEvent>()
-            .add_system(ui_system)
-            .add_system(print_slider_values);
+            .add_system(ui_system.in_set(OnUpdate(AppState::InGame)))
+            .add_system(print_slider_values.in_set(OnUpdate(AppState::InGame)));
     }
 }
 
@@ -43,6 +45,7 @@ fn ui_system(
         .show(contexts.ctx_mut(), |ui| {
             ui.vertical(|ui| {
                 ui.heading("Settings");
+                ui.separator();
                 let mut changed = false;
                 changed |= add_slider(ui, &mut sliders.slider1, "slider1");
                 changed |= add_slider(ui, &mut sliders.slider2, "slider2");
@@ -57,7 +60,6 @@ fn ui_system(
 // System to print the slider values when SliderChangeEvent is received
 fn print_slider_values(mut events: EventReader<SliderChangeEvent>, sliders: Res<SliderValues>) {
     if !events.is_empty() {
-        // Use info! instead of println! for better logging
         info!(
             "Slider values: {}, {}, {}",
             sliders.slider1, sliders.slider2, sliders.slider3
