@@ -4,7 +4,7 @@ use bevy_egui::{
     EguiContexts,
 };
 
-use crate::menu::AppState;
+use super::app_state_plugin::AppState;
 
 // Resource that holds the slider values
 #[derive(Default, Resource)]
@@ -16,17 +16,6 @@ struct SliderValues {
 
 // Event that is sent when slider values are changed
 struct SliderChangeEvent;
-
-pub struct NewWorldPlugin;
-
-impl Plugin for NewWorldPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<SliderValues>()
-            .add_event::<SliderChangeEvent>()
-            .add_system(ui_system.in_set(OnUpdate(AppState::InGame)))
-            .add_system(print_slider_values.in_set(OnUpdate(AppState::InGame)));
-    }
-}
 
 // Helper function to create a slider and check if it was changed
 fn add_slider(ui: &mut Ui, slider_value: &mut f32, label: &str) -> bool {
@@ -66,5 +55,16 @@ fn print_slider_values(mut events: EventReader<SliderChangeEvent>, sliders: Res<
         );
         // Clear the events to avoid printing the same values multiple times
         events.clear();
+    }
+}
+
+pub struct NewWorldPlugin;
+
+impl Plugin for NewWorldPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<SliderValues>()
+            .add_event::<SliderChangeEvent>()
+            .add_system(ui_system.in_set(OnUpdate(AppState::InGame)))
+            .add_system(print_slider_values.in_set(OnUpdate(AppState::InGame)));
     }
 }

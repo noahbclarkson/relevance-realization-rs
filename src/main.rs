@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
-use relevance_realization_rs::{new_world::NewWorldPlugin, menu::AppStatePlugin, tilemap::TileMapPlugin, camera::CameraPlugin, agent::AgentPlugin};
+use relevance_realization_rs::plugins::{
+    agent_plugin::AgentPlugin, app_state_plugin::AppStatePlugin, camera_plugin::CameraPlugin,
+    new_world_plugin::NewWorldPlugin, tilemap_plugin::TileMapPlugin,
+};
 
 fn main() {
     App::new()

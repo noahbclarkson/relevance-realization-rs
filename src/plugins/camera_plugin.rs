@@ -1,9 +1,13 @@
 use bevy::{input::Input, math::Vec3, prelude::*};
 
-use crate::{menu::AppState, tilemap::{MAP_SIZE, TILE_SIZE}};
+use crate::tilemap::{MAP_SIZE, TILE_SIZE};
+
+use super::app_state_plugin::AppState;
+
+const SPEED: f32 = 500.0;
+const ZOOM_SPEED: f32 = 0.025;
 
 // A simple camera system for moving and zooming the camera.
-#[allow(dead_code)]
 pub fn movement(
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
@@ -29,11 +33,11 @@ pub fn movement(
         }
 
         if keyboard_input.pressed(KeyCode::Z) {
-            ortho.scale += 0.05;
+            ortho.scale += ZOOM_SPEED;
         }
 
         if keyboard_input.pressed(KeyCode::X) {
-            ortho.scale -= 0.05;
+            ortho.scale -= ZOOM_SPEED;
         }
 
         if ortho.scale < 0.25 {
@@ -45,7 +49,7 @@ pub fn movement(
         }
 
         let z = transform.translation.z;
-        transform.translation += time.delta_seconds() * direction * 500.;
+        transform.translation += time.delta_seconds() * direction * SPEED;
         transform.translation.z = z;
     }
 }
@@ -54,10 +58,10 @@ pub fn movement(
 pub struct GameCamera;
 
 fn setup(mut commands: Commands) {
-    let pos = MAP_SIZE as f32 * TILE_SIZE as f32;
+    let pos = MAP_SIZE as f32 * TILE_SIZE as f32 / 2.0;
     commands.spawn((
         Camera2dBundle {
-            transform: Transform::from_xyz(pos / 2.0, pos / 2.0, 1000.0),
+            transform: Transform::from_xyz(pos, pos, 1000.0),
             ..Default::default()
         },
         GameCamera,
