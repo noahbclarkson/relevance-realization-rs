@@ -1,17 +1,16 @@
 use bevy::prelude::*;
-use relevance_realization_rs::user_settings::UserSettingsPlugin;
+use bevy_egui::EguiPlugin;
+use relevance_realization_rs::{new_world::NewWorldPlugin, menu::AppStatePlugin, tilemap::TileMapPlugin, camera::CameraPlugin, agent::AgentPlugin};
 
 fn main() {
     App::new()
-        // This will enable the logging system
-        .add_plugins(DefaultPlugins)
-        .add_plugin(bevy_egui::EguiPlugin)
-        .add_plugin(UserSettingsPlugin)
-        .add_startup_system(setup)
+        .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
+        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        .add_plugin(EguiPlugin)
+        .add_plugin(AppStatePlugin)
+        .add_plugin(NewWorldPlugin)
+        .add_plugin(CameraPlugin)
+        .add_plugin(TileMapPlugin)
+        .add_plugin(AgentPlugin)
         .run();
-}
-
-// This system initializes the Camera2dBundle
-fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
 }
