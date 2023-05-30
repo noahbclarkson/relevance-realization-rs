@@ -1,6 +1,7 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use ::bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 use ordered_float::NotNan;
 use rand::Rng;
 
@@ -9,10 +10,12 @@ const AGENT_VIEW_DISTANCE: i32 = 32;
 
 use crate::{
     camera::GameCamera,
+    math::{distance},
     menu::AppState,
-    tilemap::{TileType, Tiles, MAP_SIZE, TILE_SIZE}, math::{distance, distance_f32},
+    tilemap::{TileType, Tiles, MAP_SIZE, TILE_SIZE},
 };
 
+// Struct to represent the agent's view
 #[derive(Clone)]
 struct AgentView {
     tile_distance: f32,
@@ -20,6 +23,7 @@ struct AgentView {
     tile_type: TileType,
 }
 
+// Implementation of comparison traits for AgentView, using NotNan to handle potential NaN values in tile_distance
 impl PartialOrd for AgentView {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         NotNan::new(self.tile_distance)
@@ -44,12 +48,7 @@ impl PartialEq for AgentView {
 
 impl Eq for AgentView {}
 
-#[derive(Component, Clone)]
-pub struct Agent {
-    agent_number: i32,
-    agent_view: BTreeSet<AgentView>,
-}
-
+// Default implementation for AgentView
 impl Default for AgentView {
     fn default() -> Self {
         AgentView {
@@ -60,10 +59,14 @@ impl Default for AgentView {
     }
 }
 
+#[derive(Component, Clone)]
+pub struct Agent {
+    agent_view: BTreeSet<AgentView>,
+}
+
 impl Agent {
-    pub fn new(agent_number: i32) -> Self {
+    pub fn new() -> Self {
         Agent {
-            agent_number,
             agent_view: BTreeSet::new(),
         }
     }
@@ -75,32 +78,35 @@ pub fn spawn_agents(mut commands: Commands, asset_server: Res<AssetServer>) {
     let mut rand = rand::thread_rng();
     let range = (MAP_SIZE * TILE_SIZE) - TILE_SIZE;
     for i in 0..AGENT_COUNT {
-        let x = rand.gen_range(TILE_SIZE..range);
-        let y = rand.gen_range(TILE_SIZE..range);
+        let x = rand.gen_range(0..range);
+        let y = rand.gen_range(0..range);
         commands
             .spawn(SpriteBundle {
                 texture: asset_server.load("player.png"),
                 transform: Transform::from_xyz(x as f32, y as f32, 0.0),
                 ..Default::default()
             })
-            .insert(Agent::new(i));
+            .insert(Agent::new());
         info!("Spawned agent {} at {}, {}", i, x, y);
     }
 }
 
+
 #[derive(Resource)]
 pub struct CameraLockTarget {
-    pub targets: Vec<IVec2>,
-    pub camera_positon: IVec2,
+    pub targets: Vec<Vec2>,
+    pub camera_positon: Vec2,
     pub locked: bool,
+    pub window_size: Vec2,
 }
 
 impl Default for CameraLockTarget {
     fn default() -> Self {
         CameraLockTarget {
             targets: Vec::new(),
-            camera_positon: IVec2::ZERO,
+            camera_positon: Vec2::ZERO,
             locked: false,
+            window_size: Vec2::ZERO,
         }
     }
 }
@@ -109,16 +115,21 @@ fn toggle_camera_lock(
     mouse_button_input: Res<Input<MouseButton>>,
     mut camera_lock_target: ResMut<CameraLockTarget>,
     query: Query<&Transform, With<GameCamera>>,
+    window_query: Query<&Window, With<PrimaryWindow>>
 ) {
+    let Ok(primary) = window_query.get_single() else {
+        return;
+    };
     if mouse_button_input.just_pressed(MouseButton::Middle) {
         camera_lock_target.locked = !camera_lock_target.locked;
         if camera_lock_target.locked {
             for transform in query.iter() {
-                camera_lock_target.camera_positon = IVec2::new(
-                    transform.translation.x as i32,
-                    transform.translation.y as i32,
+                camera_lock_target.camera_positon = Vec2::new(
+                    transform.translation.x,
+                    transform.translation.y,
                 );
             }
+            camera_lock_target.window_size = Vec2::new(primary.width(), primary.height());
         }
     }
 }
@@ -132,13 +143,10 @@ fn get_agent_view(mut query: Query<(&Transform, &mut Agent)>, tiles: Res<Tiles>)
             (transform.translation.y / TILE_SIZE as f32) as i32,
         );
 
-        let min_x = agent_tile_position.x - AGENT_VIEW_DISTANCE;
-        let max_x = agent_tile_position.x + AGENT_VIEW_DISTANCE;
-        let min_y = agent_tile_position.y - AGENT_VIEW_DISTANCE;
-        let max_y = agent_tile_position.y + AGENT_VIEW_DISTANCE;
-
-        let (min_x, max_x) = (min_x.max(0), max_x.min(MAP_SIZE - 1));
-        let (min_y, max_y) = (min_y.max(0), max_y.min(MAP_SIZE - 1));
+        let min_x = (agent_tile_position.x - AGENT_VIEW_DISTANCE).max(0);
+        let max_x = (agent_tile_position.x + AGENT_VIEW_DISTANCE).min(MAP_SIZE as i32 - 1);
+        let min_y = (agent_tile_position.y - AGENT_VIEW_DISTANCE).max(0);
+        let max_y = (agent_tile_position.y + AGENT_VIEW_DISTANCE).min(MAP_SIZE as i32 - 1);
 
         for x in min_x..=max_x {
             for y in min_y..=max_y {
@@ -146,10 +154,10 @@ fn get_agent_view(mut query: Query<(&Transform, &mut Agent)>, tiles: Res<Tiles>)
                 let tile_type = tiles.tiles[tile_position.x as usize][tile_position.y as usize];
 
                 // Calculate the distance between the transform of the agent and the transform of the tile
-                let tile_distance = distance_f32(
+                let tile_distance = distance(
                     Vec2::new(
-                        transform.translation.x as f32,
-                        transform.translation.y as f32,
+                        transform.translation.x,
+                        transform.translation.y,
                     ),
                     Vec2::new(
                         (tile_position.x * TILE_SIZE) as f32,
@@ -170,10 +178,7 @@ fn get_agent_view(mut query: Query<(&Transform, &mut Agent)>, tiles: Res<Tiles>)
 }
 
 // Move the agent to the closest Sand tile
-fn agent_move(
-    time: Res<Time>,
-    mut query: Query<(&mut Transform, &Agent)>,
-) {
+fn agent_move(time: Res<Time>, mut query: Query<(&mut Transform, &Agent)>) {
     for (mut transform, agent) in query.iter_mut() {
         // Check if agent view is not empty
         if agent.agent_view.is_empty() {
@@ -205,15 +210,17 @@ fn agent_move(
             if direction_length < move_speed {
                 move_speed = direction_length;
             }
-            
+
             if direction_length > 0.0 {
                 // Normalize the direction vector (make its length 1)
                 let normalized_direction_x = direction_x / direction_length;
                 let normalized_direction_y = direction_y / direction_length;
 
                 // Update the agent's position, moving it in the direction of the target
-                transform.translation.x += normalized_direction_x * time.delta_seconds() * move_speed;
-                transform.translation.y += normalized_direction_y * time.delta_seconds() * move_speed;
+                transform.translation.x +=
+                    normalized_direction_x * time.delta_seconds() * move_speed;
+                transform.translation.y +=
+                    normalized_direction_y * time.delta_seconds() * move_speed;
             }
         }
     }
@@ -225,9 +232,9 @@ fn find_agents(
 ) {
     camera_lock_target.targets.clear();
     for (transform, _) in query.iter() {
-        camera_lock_target.targets.push(IVec2::new(
-            transform.translation.x as i32,
-            transform.translation.y as i32,
+        camera_lock_target.targets.push(Vec2::new(
+            transform.translation.x,
+            transform.translation.y,
         ));
     }
 }
@@ -238,22 +245,25 @@ fn lock_camera_to_target(
     mut query: Query<(&mut Transform, &GameCamera)>,
 ) {
     if camera_lock_target.locked && !camera_lock_target.targets.is_empty() {
-        // Find the target that is closest to the camera
-
-        let mut target_pos = camera_lock_target.targets[0];
-        let lowest_distance = distance(camera_lock_target.camera_positon, target_pos);
+        let mut closest_screen_distance = f32::MAX;
+        let mut target_pos = Vec2::ZERO;
 
         for target in camera_lock_target.targets.iter() {
-            let dist = distance(camera_lock_target.camera_positon, *target);
-            if dist < lowest_distance {
+            let screen_target = (*target - camera_lock_target.camera_positon) + (camera_lock_target.window_size / 2.0);
+            let screen_camera_position = (camera_lock_target.camera_positon - camera_lock_target.camera_positon) + (camera_lock_target.window_size / 2.0);
+
+            let screen_distance = distance(screen_camera_position, screen_target);
+
+            if screen_distance < closest_screen_distance {
+                closest_screen_distance = screen_distance;
                 target_pos = *target;
             }
         }
 
         for (mut transform, _) in query.iter_mut() {
-            let camera_pos = IVec2::new(
-                transform.translation.x as i32,
-                transform.translation.y as i32,
+            let camera_pos = Vec2::new(
+                transform.translation.x,
+                transform.translation.y,
             );
             let dist = distance(camera_pos, target_pos);
 

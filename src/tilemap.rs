@@ -1,5 +1,5 @@
 use crate::{camera::GameCamera, menu::AppState};
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 use noise::{NoiseFn, OpenSimplex};
 
 pub const MAP_SIZE: i32 = 250;
@@ -39,13 +39,15 @@ impl TileType {
 
 #[derive(Resource)]
 pub struct Seed {
-    pub seed: u32,
+    pub tile_seed: u32,
+    pub tile_entity_seed: u32,
 }
 
 impl Default for Seed {
     fn default() -> Self {
         Seed {
-            seed: rand::random(),
+            tile_seed: rand::random(),
+            tile_entity_seed: rand::random(),
         }
     }
 }
@@ -58,7 +60,7 @@ pub struct Tiles {
 fn setup_map(mut commands: Commands, seed: Res<Seed>) {
     let map_size = MAP_SIZE as usize;
     let mut map = [[TileType::default(); MAP_SIZE as usize]; MAP_SIZE as usize];
-    let noise = OpenSimplex::new(seed.seed);
+    let noise = OpenSimplex::new(seed.tile_seed);
     
     for x in 0..map_size {
         for y in 0..map_size {
@@ -116,17 +118,19 @@ fn setup_map(mut commands: Commands, seed: Res<Seed>) {
 pub fn show_tiles_in_frame(
     mut query: Query<(&mut Visibility, &Transform), With<Tile>>,
     camera_query: Query<(&Transform, &OrthographicProjection), With<GameCamera>>,
+    window_query: Query<&Window, With<PrimaryWindow>>
 ) {
     let (camera_transform, ortho) = camera_query.single();
+    let Ok(primary) = window_query.get_single() else {
+        return;
+    };
     let camera_x = camera_transform.translation.x;
     let camera_y = camera_transform.translation.y;
 
-    let camera_width = 1000.0;
-    let camera_height = 600.0;
-    let camera_left = camera_x - camera_width / 1.5 * ortho.scale;
-    let camera_right = camera_x + camera_width / 1.4 * ortho.scale;
-    let camera_top = camera_y + camera_height / 1.4 * ortho.scale;
-    let camera_bottom = camera_y - camera_height / 1.5 * ortho.scale;
+    let camera_left = camera_x - (primary.width() + TILE_SIZE as f32) / 2.0 * ortho.scale;
+    let camera_right = camera_x + (primary.width() + TILE_SIZE as f32) / 2.0 * ortho.scale;
+    let camera_top = camera_y +( primary.height() + TILE_SIZE as f32) / 2.0 * ortho.scale;
+    let camera_bottom = camera_y - (primary.height() + TILE_SIZE as f32) / 2.0 * ortho.scale;
     for (mut visibility, transform) in query.iter_mut() {
         let x = transform.translation.x;
         let y = transform.translation.y;
