@@ -1,6 +1,6 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::{agent::agent::Agent, math::distance};
+use crate::{agent::agent::Agent, positioning::TransformPosition};
 
 use super::{app_state_plugin::AppState, camera_plugin::GameCameraPosition};
 
@@ -11,7 +11,7 @@ const AGENT_DETECTION_RADIUS: f32 = 16.0;
 #[derive(Default, Resource, Clone)]
 pub struct CurrentlyHoveredAgent {
     pub entity: Option<Entity>,
-    pub position: Vec2,
+    pub position: TransformPosition,
 }
 
 // UI Component for displaying agent information.
@@ -35,30 +35,30 @@ fn detect_currently_hovered_agent(
             let ortho_projection = orthographic_projection_query.single();
 
             // Calculate camera's position considering the window's dimensions.
-            let camera_position = Vec2::new(
+            let camera_position = TransformPosition::new(
                 camera.pos.x - (primary_window.width() / 2.0) * ortho_projection.scale,
                 camera.pos.y - (primary_window.height() / 2.0) * ortho_projection.scale,
             );
 
             // Calculate the cursor's position considering the scale.
-            let cursor_position_scaled = Vec2::new(
+            let cursor_position_scaled = TransformPosition::new(
                 cursor_position.x as f32 * ortho_projection.scale + camera_position.x,
                 cursor_position.y as f32 * ortho_projection.scale + camera_position.y,
             );
 
             // Check if the cursor is hovering over an agent.
             for (entity, transform) in agent_query.iter_mut() {
-                let agent_position = Vec2::new(transform.translation.x, transform.translation.y);
+                let agent_position = TransformPosition::new_from_transform(transform);
 
                 // If the distance to the agent is within the detection radius,
                 // set this agent as the currently hovered agent.
-                if distance(cursor_position_scaled, agent_position) < AGENT_DETECTION_RADIUS {
+                if cursor_position_scaled.distance(&agent_position) < AGENT_DETECTION_RADIUS {
                     hovered_agent.entity = Some(entity);
                     let cursor_position = Vec2::new(
                         cursor_position.x as f32,
                         primary_window.height() - cursor_position.y as f32,
                     );
-                    hovered_agent.position = cursor_position;
+                    hovered_agent.position = cursor_position.into();
                     break;
                 }
             }

@@ -1,15 +1,15 @@
-use bevy::prelude::{IVec2, Component};
+use bevy::prelude::Component;
 use getset::{Getters, Setters};
 use rand::Rng;
 
-use crate::tilemap::MAP_SIZE;
+use crate::{positioning::TilePosition, tilemap::MAP_SIZE};
 
 #[derive(Component, Clone, Getters, Setters)]
 pub struct Task {
     #[getset(get = "pub", set = "pub")]
     pub task_type: TaskType,
     #[getset(get = "pub", set = "pub")]
-    pub location: IVec2,
+    pub location: TilePosition,
 }
 
 impl Default for Task {
@@ -17,14 +17,13 @@ impl Default for Task {
         let mut rand = rand::thread_rng();
         Task {
             task_type: TaskType::Move,
-            // A random tile on the map
-            location: IVec2::new(rand.gen_range(0..MAP_SIZE), rand.gen_range(0..MAP_SIZE)),
+            location: TilePosition::new(rand.gen_range(0..MAP_SIZE), rand.gen_range(0..MAP_SIZE)),
         }
     }
 }
 
 impl Task {
-    pub fn new(task_type: TaskType, location: IVec2) -> Self {
+    pub fn new(task_type: TaskType, location: TilePosition) -> Self {
         Task {
             task_type,
             location,

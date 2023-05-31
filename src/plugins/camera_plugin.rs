@@ -1,6 +1,6 @@
 use bevy::{input::Input, math::Vec3, prelude::*, window::PrimaryWindow};
 
-use crate::tilemap::{MAP_SIZE, TILE_SIZE};
+use crate::{tilemap::{MAP_SIZE, TILE_SIZE}, positioning::TransformPosition};
 
 use super::app_state_plugin::AppState;
 
@@ -12,7 +12,7 @@ pub struct GameCamera;
 
 #[derive(Default, Resource)]
 pub struct GameCameraPosition {
-    pub pos: Vec2,
+    pub pos: TransformPosition,
     pub window_size: Vec2,
 }
 
@@ -81,7 +81,7 @@ fn update_camera_position(
 ) {
     let transform = query.single();
     let window = window_query.single();
-    game_camera_position.pos = Vec2::new(transform.translation.x, transform.translation.y);
+    game_camera_position.pos = TransformPosition::new_from_transform(transform);
     game_camera_position.window_size = Vec2::new(window.width(), window.height());
 }
 

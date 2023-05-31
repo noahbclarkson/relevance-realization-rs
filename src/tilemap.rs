@@ -1,13 +1,14 @@
 use bevy::prelude::*;
 use rand::Rng;
 
+use crate::positioning::TilePosition;
+
 pub const MAP_SIZE: i32 = 250;
 pub const TILE_SIZE: i32 = 16;
 
 #[derive(Component, PartialEq, Eq, Hash, Clone)]
 pub struct Tile {
-    pub x: i32,
-    pub y: i32,
+    pub position: TilePosition,
     pub tile_type: TileType,
 }
 

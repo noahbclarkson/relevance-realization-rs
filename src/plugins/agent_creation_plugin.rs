@@ -8,7 +8,7 @@ use crate::{
         agent::{Agent, AGENT_COUNT},
         agent_view::AgentView,
     },
-    math::distance,
+    positioning::{TilePosition, TransformPosition},
     tilemap::{Tiles, MAP_SIZE, TILE_SIZE},
 };
 use ::bevy::prelude::*;
@@ -18,7 +18,7 @@ use std::collections::BTreeSet;
 // This struct holds the camera lock targets and its state.
 #[derive(Resource)]
 pub struct CameraLockTarget {
-    pub targets: Vec<Vec2>,
+    pub targets: Vec<TransformPosition>,
     pub locked: bool,
 }
 
@@ -63,10 +63,8 @@ fn toggle_camera_lock_based_on_input(
 fn get_each_agents_view(mut query: Query<(&Transform, &mut Agent)>, tiles: Res<Tiles>) {
     for (transform, mut agent) in query.iter_mut() {
         let mut agent_view = BTreeSet::new();
-        let agent_tile_position = IVec2::new(
-            (transform.translation.x / TILE_SIZE as f32) as i32,
-            (transform.translation.y / TILE_SIZE as f32) as i32,
-        );
+        let agent_position = TransformPosition::new_from_transform(transform);
+        let agent_tile_position: TilePosition = agent_position.into();
 
         let min_x = (agent_tile_position.x - agent.view_distance()).max(0);
         let max_x = (agent_tile_position.x + agent.view_distance()).min(MAP_SIZE as i32 - 1);
@@ -75,18 +73,13 @@ fn get_each_agents_view(mut query: Query<(&Transform, &mut Agent)>, tiles: Res<T
 
         for x in min_x..=max_x {
             for y in min_y..=max_y {
-                let tile_position = IVec2::new(x, y);
+                let tile_position = TilePosition::new(x, y);
+                let tile_transform_position: TransformPosition = TilePosition::into(tile_position);
                 let tile_type = tiles.tiles[tile_position.x as usize][tile_position.y as usize];
 
-                let tile_distance = distance(
-                    Vec2::new(transform.translation.x, transform.translation.y),
-                    Vec2::new(
-                        (tile_position.x * TILE_SIZE) as f32,
-                        (tile_position.y * TILE_SIZE) as f32,
-                    ),
-                );
+                let distance = agent_position.distance(&tile_transform_position);
 
-                agent_view.insert(AgentView::new(tile_distance, tile_position, tile_type));
+                agent_view.insert(AgentView::new(distance, tile_position, tile_type));
             }
         }
 
@@ -103,7 +96,7 @@ fn find_all_agents(
     for (transform, _) in query.iter() {
         camera_lock_target
             .targets
-            .push(Vec2::new(transform.translation.x, transform.translation.y));
+            .push(TransformPosition::new_from_transform(transform));
     }
 }
 
@@ -116,13 +109,13 @@ fn lock_camera_to_selected_target(
 ) {
     if camera_lock_target.locked && !camera_lock_target.targets.is_empty() {
         let mut closest_screen_distance = f32::MAX;
-        let mut target_pos = Vec2::ZERO;
+        let mut target_pos = TransformPosition::default();
 
         for target in camera_lock_target.targets.iter() {
             let screen_target = (*target - camera.pos) + (camera.window_size / 2.0);
             let screen_camera_position = (camera.pos - camera.pos) + (camera.window_size / 2.0);
 
-            let screen_distance = distance(screen_camera_position, screen_target);
+            let screen_distance = screen_camera_position.distance(&screen_target);
 
             if screen_distance < closest_screen_distance {
                 closest_screen_distance = screen_distance;
@@ -131,24 +124,16 @@ fn lock_camera_to_selected_target(
         }
 
         for (mut transform, _) in query.iter_mut() {
-            let camera_pos = Vec2::new(transform.translation.x, transform.translation.y);
-            let dist = distance(camera_pos, target_pos);
+            let mut camera_pos = TransformPosition::new_from_transform(&transform);
+            let dist = camera_pos.distance(&target_pos);
 
             if dist < 10.0 {
                 continue;
             }
 
-            let move_speed = 1.0 + dist / 100.0;
-
-            let x = transform.translation.x
-                + (target_pos.x as f32 - transform.translation.x)
-                    * time.delta_seconds()
-                    * move_speed;
-            let y = transform.translation.y
-                + (target_pos.y as f32 - transform.translation.y) * time.delta_seconds() / 2.0
-                    * move_speed;
-
-            transform.translation = Vec3::new(x, y, transform.translation.z);
+            let speed = 1.0 + dist / 100.0;
+            camera_pos.move_towards(&target_pos, &time, speed);
+            transform.translation = camera_pos.into_vec3(transform.translation.z);
         }
     }
 }
