@@ -1,4 +1,4 @@
-use bevy::{input::Input, math::Vec3, prelude::*};
+use bevy::{input::Input, math::Vec3, prelude::*, window::PrimaryWindow};
 
 use crate::tilemap::{MAP_SIZE, TILE_SIZE};
 
@@ -6,6 +6,15 @@ use super::app_state_plugin::AppState;
 
 const SPEED: f32 = 500.0;
 const ZOOM_SPEED: f32 = 0.025;
+
+#[derive(Component)]
+pub struct GameCamera;
+
+#[derive(Default, Resource)]
+pub struct GameCameraPosition {
+    pub pos: Vec2,
+    pub window_size: Vec2,
+}
 
 // A simple camera system for moving and zooming the camera.
 pub fn movement(
@@ -54,9 +63,6 @@ pub fn movement(
     }
 }
 
-#[derive(Component)]
-pub struct GameCamera;
-
 fn setup(mut commands: Commands) {
     let pos = MAP_SIZE as f32 * TILE_SIZE as f32 / 2.0;
     commands.spawn((
@@ -68,11 +74,24 @@ fn setup(mut commands: Commands) {
     ));
 }
 
+fn update_camera_position(
+    mut game_camera_position: ResMut<GameCameraPosition>,
+    query: Query<&Transform, With<GameCamera>>,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+) {
+    let transform = query.single();
+    let window = window_query.single();
+    game_camera_position.pos = Vec2::new(transform.translation.x, transform.translation.y);
+    game_camera_position.window_size = Vec2::new(window.width(), window.height());
+}
+
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(setup.in_schedule(OnEnter(AppState::InGame)))
-            .add_system(movement.in_set(OnUpdate(AppState::InGame)));
+        app.insert_resource(GameCameraPosition::default())
+        .add_system(setup.in_schedule(OnEnter(AppState::InGame)))
+        .add_system(movement.in_set(OnUpdate(AppState::InGame)))
+        .add_system(update_camera_position.in_set(OnUpdate(AppState::InGame)));
     }
 }
