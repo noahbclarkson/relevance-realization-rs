@@ -1,6 +1,6 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::{agent::Agent, math::distance};
+use crate::{agent::agent::Agent, math::distance};
 
 use super::{app_state_plugin::AppState, camera_plugin::GameCameraPosition};
 

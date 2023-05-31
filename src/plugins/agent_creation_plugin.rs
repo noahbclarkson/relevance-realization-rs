@@ -1,16 +1,19 @@
 // Game libraries and modules.
-use std::collections::BTreeSet;
-use ::bevy::prelude::*;
-use rand::Rng;
-use crate::{
-    agent::{Agent, AgentView, AGENT_COUNT},
-    math::distance,
-    tilemap::{Tiles, MAP_SIZE, TILE_SIZE},
-};
 use super::{
     app_state_plugin::AppState,
     camera_plugin::{GameCamera, GameCameraPosition},
 };
+use crate::{
+    agent::{
+        agent::{Agent, AGENT_COUNT},
+        agent_view::AgentView,
+    },
+    math::distance,
+    tilemap::{Tiles, MAP_SIZE, TILE_SIZE},
+};
+use ::bevy::prelude::*;
+use rand::Rng;
+use std::collections::BTreeSet;
 
 // This struct holds the camera lock targets and its state.
 #[derive(Resource)]

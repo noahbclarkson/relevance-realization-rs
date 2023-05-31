@@ -2,10 +2,13 @@ use std::collections::BTreeSet;
 
 use ::bevy::prelude::*;
 use getset::{Getters, Setters};
-use ordered_float::NotNan;
-use rand::Rng;
 
-use crate::{tilemap::{TileType, MAP_SIZE}, tradeoff::{Tradeoff}};
+use crate::tradeoff::Tradeoff;
+
+use super::{
+    agent_view::AgentView,
+    task::{Task, TaskType},
+};
 
 pub const AGENT_COUNT: i32 = 10;
 pub const AGENT_VIEW_DISTANCE: i32 = 32;
@@ -49,7 +52,8 @@ impl Agent {
         }
         let same_task_percentage = same_task_count as f32 / 100.0;
         let exploration = same_task_percentage * self.exploration_exploitation.lhs_multiplier();
-        let exploitation = self.data.lowest() / 100.0 * self.exploration_exploitation.rhs_multiplier();
+        let exploitation =
+            self.data.lowest() / 100.0 * self.exploration_exploitation.rhs_multiplier();
         (exploration, exploitation)
     }
 }
@@ -65,100 +69,6 @@ impl std::fmt::Display for Agent {
         write!(f, "\n\tHealth: {}", self.data.health)?;
         Ok(())
     }
-}
-
-// Struct to represent the agent's view
-#[derive(Clone, Getters, Setters)]
-pub struct AgentView {
-    #[getset(get = "pub")]
-    tile_distance: f32,
-    #[getset(get = "pub")]
-    tile_position: IVec2,
-    #[getset(get = "pub")]
-    tile_type: TileType,
-}
-
-// Implementation of comparison traits for AgentView, using NotNan to handle potential NaN values in tile_distance
-impl PartialOrd for AgentView {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        NotNan::new(self.tile_distance)
-            .unwrap()
-            .partial_cmp(&NotNan::new(other.tile_distance).unwrap())
-    }
-}
-
-impl Ord for AgentView {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        NotNan::new(self.tile_distance)
-            .unwrap()
-            .cmp(&NotNan::new(other.tile_distance).unwrap())
-    }
-}
-
-impl PartialEq for AgentView {
-    fn eq(&self, other: &Self) -> bool {
-        self.tile_distance == other.tile_distance
-    }
-}
-
-impl Eq for AgentView {}
-
-// Default implementation for AgentView
-impl Default for AgentView {
-    fn default() -> Self {
-        AgentView {
-            tile_distance: f32::MAX,
-            tile_position: IVec2::ZERO,
-            tile_type: TileType::default(),
-        }
-    }
-}
-
-impl AgentView {
-    pub fn new(tile_distance: f32, tile_position: IVec2, tile_type: TileType) -> Self {
-        AgentView {
-            tile_distance,
-            tile_position,
-            tile_type,
-        }
-    }
-}
-
-#[derive(Component, Clone, Getters, Setters)]
-pub struct Task {
-    #[getset(get = "pub", set = "pub")]
-    pub task_type: TaskType,
-    #[getset(get = "pub", set = "pub")]
-    pub location: IVec2,
-}
-
-impl Default for Task {
-    fn default() -> Self {
-        let mut rand = rand::thread_rng();
-        Task {
-            task_type: TaskType::Move,
-            // A random tile on the map
-            location: IVec2::new(rand.gen_range(0..MAP_SIZE), rand.gen_range(0..MAP_SIZE)),
-        }
-    }
-}
-
-impl Task {
-    pub fn new(task_type: TaskType, location: IVec2) -> Self {
-        Task {
-            task_type,
-            location,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum TaskType {
-    Move,
-    Eat,
-    Drink,
-    Regenerate,
-    Idle,
 }
 
 #[derive(Component, Clone, Getters, Setters)]
