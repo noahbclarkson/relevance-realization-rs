@@ -1,72 +1,97 @@
-use std::collections::BTreeSet;
-
 use ::bevy::prelude::*;
 use getset::{Getters, Setters};
 
-use crate::agent::tradeoff::Tradeoff;
-
-use super::{
-    agent_view::AgentView,
-    task::{Task, TaskType},
+use crate::{
+    agent::tradeoff::Tradeoff,
+    positioning::{TilePosition, TransformPosition},
+    tilemap::Tiles,
 };
 
-pub const AGENT_COUNT: i32 = 10;
-pub const AGENT_VIEW_DISTANCE: i32 = 32;
+use super::task::{Task, TaskType};
 
-#[derive(Component, Clone, Getters, Setters)]
+pub const AGENT_COUNT: i32 = 10;
+pub const AGENT_SPEED: f32 = 30.0;
+
+#[derive(Component, Clone)]
 pub struct Agent {
-    pub agent_view: BTreeSet<AgentView>,
     pub task_history: Vec<Task>,
     pub data: AgentData,
     pub exploration_exploitation: Tradeoff,
-    #[getset(get = "pub", set = "pub")]
-    view_distance: i32,
+    pub exploration_exploitation_state: ExploringExploitingState,
+    pub latest_task: TaskType,
 }
 
 impl Agent {
     pub fn new() -> Self {
         Agent {
-            agent_view: BTreeSet::new(),
             task_history: Vec::new(),
             data: AgentData::default(),
             exploration_exploitation: Tradeoff::default(),
-            view_distance: AGENT_VIEW_DISTANCE / 2,
+            exploration_exploitation_state: ExploringExploitingState::Exploring,
+            latest_task: TaskType::Idle,
         }
     }
 
-    pub fn calculate_exploration_exploitation(&mut self) -> (f32, f32) {
-        let binding = Task::default();
-        let last_task = self.task_history.last().unwrap_or(&binding);
-        let mut last_100_tasks = Vec::new();
-        for (i, task) in self.task_history.iter().rev().enumerate() {
-            if i == 100 {
-                break;
+    pub fn agent_move(&mut self, time: &Res<Time>, task: &Task, transform: &mut Transform) {
+        let mut agent_transform_position = TransformPosition::new_from_transform(transform);
+        agent_transform_position.move_towards(&task.position().clone().into(), time, AGENT_SPEED);
+        transform.translation = agent_transform_position.into_vec3(transform.translation.z);
+    }
+
+    pub fn exploit(&mut self, tiles: &Res<Tiles>, transform: &mut Transform) {
+        let tile_position = TilePosition::new_from_transform(transform);
+        let tile_type = tiles.get_tile_type(&tile_position);
+        match tile_type {
+            crate::tilemap::TileType::Grass => {
+                self.data.saturation += 1.0;
+                self.task_history
+                    .push(Task::new(TaskType::Eat, tile_position, true));
             }
-            last_100_tasks.push(task);
+            crate::tilemap::TileType::Water => {
+                self.data.thirst += 1.0;
+                self.task_history
+                    .push(Task::new(TaskType::Drink, tile_position, true));
+            }
+            crate::tilemap::TileType::DeepWater => {}
+            crate::tilemap::TileType::Sand => {
+                self.data.health += 1.0;
+                self.task_history
+                    .push(Task::new(TaskType::Regenerate, tile_position, true));
+            }
+            crate::tilemap::TileType::Mountain => {}
         }
-        let mut same_task_count = 0;
-        for task in last_100_tasks.iter() {
-            if task.task_type == last_task.task_type {
-                same_task_count += 1;
+        self.data.normalize();
+    }
+
+    pub fn find_latest_matching_task(&self, task_type: TaskType) -> Option<&Task> {
+        for task in self.task_history.iter().rev() {
+            if *task.task_type() == task_type && !task.completed() {
+                return Some(task);
             }
         }
-        let same_task_percentage = same_task_count as f32 / 100.0;
-        let exploration = same_task_percentage * self.exploration_exploitation.lhs_multiplier();
-        let exploitation =
-            self.data.lowest() / 100.0 * self.exploration_exploitation.rhs_multiplier();
-        (exploration, exploitation)
+        None
+    }
+
+    pub fn check_if_at_postion(&self, transform: &Transform, position: &TilePosition) -> bool {
+        let agent_position = TransformPosition::new_from_transform(transform);
+        let tile_position = position.clone().into();
+        agent_position.distance(&tile_position) < 1.0
+    }
+
+    pub fn tick(&mut self) {
+        self.data.tick();
+        self.data.normalize();
     }
 }
 
 impl std::fmt::Display for Agent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Display the view distance
-        write!(f, "View distance: {}", self.view_distance)?;
         // DIsplay the agents data line by line
-        write!(f, "\nData:")?;
-        write!(f, "\n\tSaturation: {}", self.data.saturation)?;
-        write!(f, "\n\tThirst: {}", self.data.thirst)?;
-        write!(f, "\n\tHealth: {}", self.data.health)?;
+        write!(f, "Saturation: {:.2}", self.data.saturation)?;
+        write!(f, "\nThirst: {:.2}", self.data.thirst)?;
+        write!(f, "\nHealth: {:.2}", self.data.health)?;
+        write!(f, "\nState: {}", self.exploration_exploitation_state)?;
+        write!(f, "\nCurrent Task: {}", self.latest_task)?;
         Ok(())
     }
 }
@@ -94,9 +119,9 @@ impl AgentData {
     }
 
     pub fn tick(&mut self) {
-        self.saturation -= 0.01;
-        self.thirst -= 0.01;
-        self.health -= 0.01;
+        self.saturation -= 0.05;
+        self.thirst -= 0.05;
+        self.health -= 0.05;
         if (self.saturation < 0.0) || (self.thirst < 0.0) || (self.health < 0.0) {
             self.health = 0.0;
         }
@@ -132,6 +157,21 @@ impl AgentData {
             } else {
                 TaskType::Regenerate
             }
+        }
+    }
+}
+
+#[derive(Component, Clone)]
+pub enum ExploringExploitingState {
+    Exploring,
+    Exploiting,
+}
+
+impl std::fmt::Display for ExploringExploitingState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExploringExploitingState::Exploring => write!(f, "Exploring"),
+            ExploringExploitingState::Exploiting => write!(f, "Exploiting"),
         }
     }
 }

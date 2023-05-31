@@ -70,3 +70,23 @@ impl Default for Seed {
 pub struct Tiles {
     pub tiles: [[TileType; MAP_SIZE as usize]; MAP_SIZE as usize],
 }
+
+impl Tiles {
+    pub fn random_position(rng: &mut ThreadRng) -> TilePosition {
+        let x = rng.gen_range(0..MAP_SIZE-1);
+        let y = rng.gen_range(0..MAP_SIZE-1);
+        TilePosition::new(x, y)
+    }
+
+    pub fn get_tile_type(&self, position: &TilePosition) -> TileType {
+        self.tiles[position.x as usize][position.y as usize]
+    }
+}
+
+impl Default for Tiles {
+    fn default() -> Self {
+        Tiles {
+            tiles: [[TileType::default(); MAP_SIZE as usize]; MAP_SIZE as usize],
+        }
+    }
+}

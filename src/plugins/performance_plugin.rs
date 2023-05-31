@@ -2,7 +2,7 @@ use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::tilemap::TILE_SIZE;
 
-use super::{app_state_plugin::AppState, camera_plugin::GameCamera};
+use super::{app_state_plugin::AppState, camera_plugin::GameCamera, new_world_plugin::DEFAULT_SIDE_PANEL_WIDTH};
 
 pub struct PerformancePlugin;
 
@@ -18,7 +18,7 @@ pub fn show_tiles_in_frame(
     let camera_x = camera_transform.translation.x;
     let camera_y = camera_transform.translation.y;
 
-    let camera_left = camera_x - (primary.width() + TILE_SIZE as f32 * 1.5) / 2.0 * (ortho.scale + 0.1);
+    let camera_left = camera_x - (primary.width() - DEFAULT_SIDE_PANEL_WIDTH + TILE_SIZE as f32 * 1.5) / 2.0 * (ortho.scale + 0.1);
     let camera_right = camera_x + (primary.width() + TILE_SIZE as f32 * 1.5) / 2.0 * (ortho.scale + 0.1);
     let camera_top = camera_y + (primary.height() + TILE_SIZE as f32 * 1.5) / 2.0 * (ortho.scale + 0.1);
     let camera_bottom = camera_y - (primary.height() + TILE_SIZE as f32 * 1.5) / 2.0 * (ortho.scale + 0.1);

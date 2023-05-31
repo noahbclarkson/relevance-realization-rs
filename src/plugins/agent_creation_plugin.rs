@@ -1,19 +1,16 @@
 // Game libraries and modules.
 use super::{
+    agent_behaviour_plugin::AgentBehaviourPlugin,
     app_state_plugin::AppState,
     camera_plugin::{GameCamera, GameCameraPosition},
 };
 use crate::{
-    agent::{
-        agent::{Agent, AGENT_COUNT},
-        agent_view::AgentView,
-    },
-    positioning::{TilePosition, TransformPosition},
-    tilemap::{Tiles, MAP_SIZE, TILE_SIZE},
+    agent::agent::{Agent, AGENT_COUNT},
+    positioning::TransformPosition,
+    tilemap::{MAP_SIZE, TILE_SIZE},
 };
 use ::bevy::prelude::*;
 use rand::Rng;
-use std::collections::BTreeSet;
 
 // This struct holds the camera lock targets and its state.
 #[derive(Resource)]
@@ -56,34 +53,6 @@ fn toggle_camera_lock_based_on_input(
 ) {
     if input.just_pressed(KeyCode::E) {
         camera_lock_target.locked = !camera_lock_target.locked;
-    }
-}
-
-// Function to get the view of each agent.
-fn get_each_agents_view(mut query: Query<(&Transform, &mut Agent)>, tiles: Res<Tiles>) {
-    for (transform, mut agent) in query.iter_mut() {
-        let mut agent_view = BTreeSet::new();
-        let agent_position = TransformPosition::new_from_transform(transform);
-        let agent_tile_position: TilePosition = agent_position.into();
-
-        let min_x = (agent_tile_position.x - agent.view_distance()).max(0);
-        let max_x = (agent_tile_position.x + agent.view_distance()).min(MAP_SIZE as i32 - 1);
-        let min_y = (agent_tile_position.y - agent.view_distance()).max(0);
-        let max_y = (agent_tile_position.y + agent.view_distance()).min(MAP_SIZE as i32 - 1);
-
-        for x in min_x..=max_x {
-            for y in min_y..=max_y {
-                let tile_position = TilePosition::new(x, y);
-                let tile_transform_position: TransformPosition = TilePosition::into(tile_position);
-                let tile_type = tiles.tiles[tile_position.x as usize][tile_position.y as usize];
-
-                let distance = agent_position.distance(&tile_transform_position);
-
-                agent_view.insert(AgentView::new(distance, tile_position, tile_type));
-            }
-        }
-
-        agent.agent_view = agent_view;
     }
 }
 
@@ -144,6 +113,6 @@ impl Plugin for AgentCreationPlugin {
             .add_system(toggle_camera_lock_based_on_input.in_set(OnUpdate(AppState::InGame)))
             .add_system(find_all_agents.in_set(OnUpdate(AppState::InGame)))
             .add_system(lock_camera_to_selected_target.in_set(OnUpdate(AppState::InGame)))
-            .add_system(get_each_agents_view.in_set(OnUpdate(AppState::InGame)));
+            .add_plugin(AgentBehaviourPlugin);
     }
 }

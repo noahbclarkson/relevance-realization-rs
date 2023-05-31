@@ -6,6 +6,8 @@ use bevy_egui::{
 
 use super::app_state_plugin::AppState;
 
+pub const DEFAULT_SIDE_PANEL_WIDTH: f32 = 210.0;
+
 // Resource that holds the slider values
 #[derive(Default, Resource)]
 struct SliderValues {
@@ -30,7 +32,8 @@ fn ui_system(
     mut events: ResMut<Events<SliderChangeEvent>>,
 ) {
     SidePanel::left("side_panel")
-        .default_width(200.0)
+        .default_width(DEFAULT_SIDE_PANEL_WIDTH)
+        .resizable(false)
         .show(contexts.ctx_mut(), |ui| {
             ui.vertical(|ui| {
                 ui.heading("Settings");

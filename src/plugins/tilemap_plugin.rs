@@ -7,9 +7,9 @@ use crate::{
     tilemap::{Seed, Tile, TileType, Tiles, MAP_SIZE, TILE_SIZE},
 };
 
-use super::{app_state_plugin::AppState, performance_plugin::PerformancePlugin};
+use super::{app_state_plugin::AppState, performance_plugin::PerformancePlugin, agent_creation_plugin::AgentCreationPlugin};
 
-fn setup_map(mut commands: Commands, seed: Res<Seed>) {
+fn setup_map(mut commands: Commands, seed: Res<Seed>, mut tiles: ResMut<Tiles>) {
     let mut map = [[TileType::default(); MAP_SIZE as usize]; MAP_SIZE as usize];
     let noise = OpenSimplex::new(seed.tile_seed);
     let mut rand = rand::thread_rng();
@@ -32,7 +32,7 @@ fn setup_map(mut commands: Commands, seed: Res<Seed>) {
         }
     }
 
-    commands.insert_resource(Tiles { tiles: map.clone() });
+    tiles.tiles = map;
 
     for (x, tile_array) in map.iter().enumerate() {
         for (y, tile) in tile_array.iter().enumerate() {
@@ -62,7 +62,9 @@ pub struct TileMapPlugin;
 impl Plugin for TileMapPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Seed>()
+            .init_resource::<Tiles>()
             .add_system(setup_map.in_schedule(OnEnter(AppState::InGame)))
-            .add_plugin(PerformancePlugin);
+            .add_plugin(PerformancePlugin)
+            .add_plugin(AgentCreationPlugin);
     }
 }

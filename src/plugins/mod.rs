@@ -5,3 +5,4 @@ pub mod new_world_plugin;
 pub mod performance_plugin;
 pub mod tilemap_plugin;
 pub mod agent_hover_plugin;
+pub mod agent_behaviour_plugin;

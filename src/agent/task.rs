@@ -1,32 +1,22 @@
 use bevy::prelude::Component;
 use getset::{Getters, Setters};
-use rand::Rng;
 
-use crate::{positioning::TilePosition, tilemap::MAP_SIZE};
+use crate::{positioning::TilePosition};
 
 #[derive(Component, Clone, Getters, Setters)]
+#[getset(get = "pub", set = "pub")]
 pub struct Task {
-    #[getset(get = "pub", set = "pub")]
-    pub task_type: TaskType,
-    #[getset(get = "pub", set = "pub")]
-    pub location: TilePosition,
-}
-
-impl Default for Task {
-    fn default() -> Self {
-        let mut rand = rand::thread_rng();
-        Task {
-            task_type: TaskType::Move,
-            location: TilePosition::new(rand.gen_range(0..MAP_SIZE), rand.gen_range(0..MAP_SIZE)),
-        }
-    }
+    task_type: TaskType,
+    position: TilePosition,
+    completed: bool,
 }
 
 impl Task {
-    pub fn new(task_type: TaskType, location: TilePosition) -> Self {
+    pub fn new(task_type: TaskType, position: TilePosition, completed: bool) -> Self {
         Task {
             task_type,
-            location,
+            position,
+            completed,
         }
     }
 }
@@ -38,4 +28,16 @@ pub enum TaskType {
     Drink,
     Regenerate,
     Idle,
+}
+
+impl std::fmt::Display for TaskType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TaskType::Move => write!(f, "Move"),
+            TaskType::Eat => write!(f, "Eat"),
+            TaskType::Drink => write!(f, "Drink"),
+            TaskType::Regenerate => write!(f, "Regenerate"),
+            TaskType::Idle => write!(f, "Idle"),
+        }
+    }
 }
