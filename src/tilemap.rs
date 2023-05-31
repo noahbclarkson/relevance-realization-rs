@@ -37,7 +37,7 @@ impl TileType {
         };
         // Add some random variation to the color
         let mut rng = rand::thread_rng();
-        let extent = 0.015;
+        let extent = 0.0175;
         let r = rng.gen_range(-extent..extent);
         let g = rng.gen_range(-extent..extent);
         let b = rng.gen_range(-extent..extent);
