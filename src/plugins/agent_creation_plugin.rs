@@ -150,7 +150,7 @@ fn lock_camera_to_selected_target(
     }
 }
 
-// Plugin to manage agent behavior.
+// Plugin to manage agent creation.
 pub struct AgentCreationPlugin;
 
 impl Plugin for AgentCreationPlugin {

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use relevance_realization_rs::plugins::{
     app_state_plugin::AppStatePlugin, camera_plugin::CameraPlugin,
-    hover_plugin::HoverPlugin, new_world_plugin::NewWorldPlugin, tilemap_plugin::TileMapPlugin, agent_creation_plugin::AgentCreationPlugin,
+    agent_hover_plugin::AgentHoverPlugin, new_world_plugin::NewWorldPlugin, tilemap_plugin::TileMapPlugin, agent_creation_plugin::AgentCreationPlugin,
 };
 
 fn main() {
@@ -15,6 +15,6 @@ fn main() {
         .add_plugin(CameraPlugin)
         .add_plugin(TileMapPlugin)
         .add_plugin(AgentCreationPlugin)
-        .add_plugin(HoverPlugin)
+        .add_plugin(AgentHoverPlugin)
         .run();
 }
