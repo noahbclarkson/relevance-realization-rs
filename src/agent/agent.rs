@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use ::bevy::prelude::*;
 use getset::{Getters, Setters};
 
-use crate::tradeoff::Tradeoff;
+use crate::agent::tradeoff::Tradeoff;
 
 use super::{
     agent_view::AgentView,

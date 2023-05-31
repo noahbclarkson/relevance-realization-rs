@@ -54,6 +54,10 @@ fn detect_currently_hovered_agent(
                 // set this agent as the currently hovered agent.
                 if distance(cursor_position_scaled, agent_position) < AGENT_DETECTION_RADIUS {
                     hovered_agent.entity = Some(entity);
+                    let cursor_position = Vec2::new(
+                        cursor_position.x as f32,
+                        primary_window.height() - cursor_position.y as f32,
+                    );
                     hovered_agent.position = cursor_position;
                     break;
                 }
