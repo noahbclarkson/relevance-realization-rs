@@ -41,7 +41,7 @@ fn setup_map(mut commands: Commands, seed: Res<Seed>) {
             commands
                 .spawn(SpriteBundle {
                     sprite: Sprite {
-                        color: tile.to_color(),
+                        color: tile.to_color(&mut rand),
                         custom_size: Some(Vec2::new(tile_size, tile_size)),
                         ..Default::default()
                     },
