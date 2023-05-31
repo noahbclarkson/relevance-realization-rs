@@ -51,10 +51,10 @@ pub fn spawn_agents_in_random_locations(mut commands: Commands, asset_server: Re
 
 // Function to toggle camera lock based on middle mouse button input.
 fn toggle_camera_lock_based_on_input(
-    mouse_button_input: Res<Input<MouseButton>>,
+    input: Res<Input<KeyCode>>,
     mut camera_lock_target: ResMut<CameraLockTarget>,
 ) {
-    if mouse_button_input.just_pressed(MouseButton::Middle) {
+    if input.just_pressed(KeyCode::E) {
         camera_lock_target.locked = !camera_lock_target.locked;
     }
 }
@@ -104,8 +104,8 @@ fn find_all_agents(
 fn lock_camera_to_selected_target(
     time: Res<Time>,
     camera_lock_target: ResMut<CameraLockTarget>,
-    mut query: Query<(&mut Transform, &GameCamera)>,
     camera: Res<GameCameraPosition>,
+    mut query: Query<&mut Transform, With<GameCamera>>,
 ) {
     if camera_lock_target.locked && !camera_lock_target.targets.is_empty() {
         let mut closest_screen_distance = f32::MAX;
@@ -123,15 +123,11 @@ fn lock_camera_to_selected_target(
             }
         }
 
-        for (mut transform, _) in query.iter_mut() {
+        for mut transform in query.iter_mut() {
             let mut camera_pos = TransformPosition::new_from_transform(&transform);
             let dist = camera_pos.distance(&target_pos);
 
-            if dist < 10.0 {
-                continue;
-            }
-
-            let speed = 1.0 + dist / 100.0;
+            let speed = dist * 2.0;
             camera_pos.move_towards(&target_pos, &time, speed);
             transform.translation = camera_pos.into_vec3(transform.translation.z);
         }
