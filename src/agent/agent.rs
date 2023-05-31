@@ -175,3 +175,78 @@ impl std::fmt::Display for ExploringExploitingState {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bevy::prelude::Transform;
+
+    #[test]
+    fn agent_new() {
+        let agent = Agent::new();
+        assert_eq!(agent.task_history.len(), 0);
+        assert_eq!(agent.latest_task, TaskType::Idle);
+    }
+
+    #[test]
+    fn agent_find_latest_matching_task() {
+        let mut agent = Agent::new();
+        let task = Task::new(TaskType::Eat, TilePosition::new(0, 0), false);
+        agent.task_history.push(task.clone());
+        assert_eq!(agent.find_latest_matching_task(TaskType::Eat), Some(&task));
+    }
+
+    #[test]
+    fn agent_check_if_at_position() {
+        let agent = Agent::new();
+        let transform = Transform::default();
+        let tile_position = TilePosition::new(0, 0);
+        assert_eq!(agent.check_if_at_postion(&transform, &tile_position), true);
+    }
+
+    #[test]
+    fn agent_data_default() {
+        let agent_data = AgentData::default();
+        assert_eq!(agent_data.saturation, 100.0);
+        assert_eq!(agent_data.thirst, 100.0);
+        assert_eq!(agent_data.health, 100.0);
+    }
+
+    #[test]
+    fn agent_data_average() {
+        let agent_data = AgentData::default();
+        assert_eq!(agent_data.average(), 100.0);
+    }
+
+    #[test]
+    fn agent_data_tick() {
+        let mut agent_data = AgentData::default();
+        agent_data.tick();
+        assert_eq!(agent_data.saturation, 99.95);
+        assert_eq!(agent_data.thirst, 99.95);
+        assert_eq!(agent_data.health, 99.95);
+    }
+
+    #[test]
+    fn agent_data_normalize() {
+        let mut agent_data = AgentData::default();
+        agent_data.saturation = 101.0;
+        agent_data.normalize();
+        assert_eq!(agent_data.saturation, 100.0);
+    }
+
+    #[test]
+    fn agent_data_lowest() {
+        let mut agent_data = AgentData::default();
+        agent_data.saturation = 90.0;
+        assert_eq!(agent_data.lowest(), 90.0);
+    }
+
+    #[test]
+    fn agent_data_get_lowest_value_task() {
+        let mut agent_data = AgentData::default();
+        agent_data.saturation = 90.0;
+        assert_eq!(agent_data.get_lowest_value_task(), TaskType::Eat);
+    }
+}
+

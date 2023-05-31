@@ -7,11 +7,14 @@ use crate::{
     tilemap::{Seed, Tile, TileType, Tiles, MAP_SIZE, TILE_SIZE},
 };
 
-use super::{app_state_plugin::AppState, performance_plugin::PerformancePlugin, agent_creation_plugin::AgentCreationPlugin};
+use super::{
+    agent_creation_plugin::AgentCreationPlugin, app_state_plugin::AppState,
+    performance_plugin::PerformancePlugin,
+};
 
-fn setup_map(mut commands: Commands, seed: Res<Seed>, mut tiles: ResMut<Tiles>) {
+fn generate_tilemap(seed: u32) -> [[TileType; MAP_SIZE as usize]; MAP_SIZE as usize] {
     let mut map = [[TileType::default(); MAP_SIZE as usize]; MAP_SIZE as usize];
-    let noise = OpenSimplex::new(seed.tile_seed);
+    let noise = OpenSimplex::new(seed);
     let mut rand = rand::thread_rng();
 
     for x in 0..MAP_SIZE as usize {
@@ -32,16 +35,21 @@ fn setup_map(mut commands: Commands, seed: Res<Seed>, mut tiles: ResMut<Tiles>) 
         }
     }
 
-    tiles.tiles = map;
+    map
+}
 
-    for (x, tile_array) in map.iter().enumerate() {
+fn setup_map(mut commands: Commands, seed: Res<Seed>, mut tiles: ResMut<Tiles>) {
+    tiles.tiles = generate_tilemap(seed.tile_seed);
+    let mut rand = rand::thread_rng();
+
+    for (x, tile_array) in tiles.tiles.iter().enumerate() {
         for (y, tile) in tile_array.iter().enumerate() {
             let tile_size = TILE_SIZE as f32;
             let transform = Transform::from_xyz(x as f32 * tile_size, y as f32 * tile_size, 0.0);
             commands
                 .spawn(SpriteBundle {
                     sprite: Sprite {
-                        color: tile.to_color(&mut rand),
+                        color: tile.to_color(&mut rand).unwrap(),
                         custom_size: Some(Vec2::new(tile_size, tile_size)),
                         ..Default::default()
                     },
@@ -66,5 +74,20 @@ impl Plugin for TileMapPlugin {
             .add_system(setup_map.in_schedule(OnEnter(AppState::InGame)))
             .add_plugin(PerformancePlugin)
             .add_plugin(AgentCreationPlugin);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_tilemap() {
+        let seed = 1; // For reproducible results, choose a fixed seed.
+        let map = generate_tilemap(seed);
+        assert_eq!(map.len(), MAP_SIZE as usize);
+        for row in map.iter() {
+            assert_eq!(row.len(), MAP_SIZE as usize);
+        }
     }
 }

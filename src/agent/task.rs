@@ -1,9 +1,9 @@
 use bevy::prelude::Component;
 use getset::{Getters, Setters};
 
-use crate::{positioning::TilePosition};
+use crate::positioning::TilePosition;
 
-#[derive(Component, Clone, Getters, Setters)]
+#[derive(Component, Clone, Debug, PartialEq, Getters, Setters)]
 #[getset(get = "pub", set = "pub")]
 pub struct Task {
     task_type: TaskType,

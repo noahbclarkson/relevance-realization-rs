@@ -1,6 +1,9 @@
 use bevy::{input::Input, math::Vec3, prelude::*, window::PrimaryWindow};
 
-use crate::{tilemap::{MAP_SIZE, TILE_SIZE}, positioning::TransformPosition};
+use crate::{
+    positioning::TransformPosition,
+    tilemap::{MAP_SIZE, TILE_SIZE},
+};
 
 use super::app_state_plugin::AppState;
 
@@ -90,8 +93,8 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GameCameraPosition::default())
-        .add_system(setup.in_schedule(OnEnter(AppState::InGame)))
-        .add_system(movement.in_set(OnUpdate(AppState::InGame)))
-        .add_system(update_camera_position.in_set(OnUpdate(AppState::InGame)));
+            .add_system(setup.in_schedule(OnEnter(AppState::InGame)))
+            .add_system(movement.in_set(OnUpdate(AppState::InGame)))
+            .add_system(update_camera_position.in_set(OnUpdate(AppState::InGame)));
     }
 }

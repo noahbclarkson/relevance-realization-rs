@@ -219,3 +219,58 @@ impl Add<Vec2> for TransformPosition {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bevy::prelude::Transform;
+
+    #[test]
+    fn tile_position_new() {
+        let tile = TilePosition::new(1, 2);
+        assert_eq!(tile.x, 1);
+        assert_eq!(tile.y, 2);
+    }
+
+    #[test]
+    fn tile_position_new_from_transform() {
+        let transform = Transform::from_xyz(100.0, 200.0, 0.0);
+        let tile = TilePosition::new_from_transform(&transform);
+        assert_eq!(tile.x, (100.0 / TILE_SIZE as f32).floor() as i32);
+        assert_eq!(tile.y, (200.0 / TILE_SIZE as f32).floor() as i32);
+    }
+
+    #[test]
+    fn transform_position_new() {
+        let transform = TransformPosition::new(1.0, 2.0);
+        assert_eq!(transform.x, 1.0);
+        assert_eq!(transform.y, 2.0);
+    }
+
+    #[test]
+    fn transform_position_new_from_transform() {
+        let transform = Transform::from_xyz(100.0, 200.0, 0.0);
+        let tp = TransformPosition::new_from_transform(&transform);
+        assert_eq!(tp.x, 100.0);
+        assert_eq!(tp.y, 200.0);
+    }
+
+    #[test]
+    fn transform_position_distance() {
+        let tp1 = TransformPosition::new(0.0, 0.0);
+        let tp2 = TransformPosition::new(3.0, 4.0);
+        assert_eq!(tp1.distance(&tp2), 5.0);
+    }
+
+    #[test]
+    fn transform_position_normalized_direction() {
+        let tp1 = TransformPosition::new(0.0, 0.0);
+        let tp2 = TransformPosition::new(3.0, 4.0);
+        let direction = tp1.normalized_direction(&tp2);
+        let distance = tp1.distance(&tp2);
+        assert_eq!(direction.x, 3.0 / distance);
+        assert_eq!(direction.y, 4.0 / distance);
+    }
+
+}
+
